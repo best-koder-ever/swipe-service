@@ -19,7 +19,8 @@ namespace SwipeService.Services
             var matchData = new { User1Id = userId, User2Id = targetUserId };
             var content = new StringContent(JsonSerializer.Serialize(matchData), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("http://matchmaking-service/api/matches", content);
+            // Fixed endpoint path to match MatchmakingController route
+            var response = await _httpClient.PostAsync("http://matchmaking-service:8083/api/matchmaking/matches", content);
             if (!response.IsSuccessStatusCode)
             {
                 // Log or handle the error

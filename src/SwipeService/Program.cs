@@ -15,9 +15,9 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API documentation for the Swipe Service."
     });
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
-    c.IncludeXmlComments(xmlPath);
+    // var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    // var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    // c.IncludeXmlComments(xmlPath); // Disabled to prevent crash if XML file is missing
 });
 
 // Configure MySQL database
