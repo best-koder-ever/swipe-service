@@ -1,0 +1,8 @@
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.csproj.AssemblyReference.cache
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.GeneratedMSBuildEditorConfig.editorconfig
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.AssemblyInfoInputs.cache
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.AssemblyInfo.cs
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.csproj.CoreCompileInputs.cache
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.MvcApplicationPartsAssemblyInfo.cs
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.MvcApplicationPartsAssemblyInfo.cache
+/home/m/development/DatingApp/swipe-service/obj/Debug/net8.0/swipe-service.sourcelink.json
