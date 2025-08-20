@@ -10,7 +10,25 @@ namespace SwipeService.Models
         public int TargetUserId { get; set; }
         public bool IsLike { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        // Add indexes using Fluent API in DbContext instead of attributes
+        public string? UserLocation { get; set; }
+        public string? DeviceInfo { get; set; }
+        
+        // Navigation properties
+        public Match? Match { get; set; }
+    }
+    
+    [Table("Matches")]
+    public class Match
+    {
+        public int Id { get; set; }
+        public int User1Id { get; set; }
+        public int User2Id { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsActive { get; set; } = true;
+        public DateTime? UnmatchedAt { get; set; }
+        public int? UnmatchedByUserId { get; set; }
+        
+        // Navigation properties
+        public List<Swipe> Swipes { get; set; } = new();
     }
 }
