@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("swipe-service")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e548743cbd70ac11bf6965afec16da3ebd893be6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6add5d95d780186b1139cdce8c71bdf1df679154")]
 [assembly: System.Reflection.AssemblyProductAttribute("swipe-service")]
 [assembly: System.Reflection.AssemblyTitleAttribute("swipe-service")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
