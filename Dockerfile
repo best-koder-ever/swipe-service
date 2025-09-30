@@ -8,7 +8,7 @@ RUN dotnet restore
 
 # Copy the entire project and build the application
 COPY . ./
-RUN dotnet publish swipe-service.csproj -c Release -o out
+RUN dotnet publish -c Release -o out
 
 # Use the official .NET runtime image for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
