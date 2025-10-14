@@ -44,7 +44,7 @@ namespace SwipeService.Data
 
             // Ensure proper ordering for matches (smaller userId first)
             modelBuilder.Entity<Match>()
-                .HasCheckConstraint("CK_Match_UserOrder", "User1Id < User2Id");
+                .ToTable(table => table.HasCheckConstraint("CK_Match_UserOrder", "User1Id < User2Id"));
         }
     }
 }

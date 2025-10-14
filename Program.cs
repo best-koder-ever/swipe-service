@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SwipeService.Data;
+using SwipeService.Extensions;
 using SwipeService.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,23 +34,9 @@ builder.Services.AddScoped<SwipeService.Services.SwipeService>();
 // Register MatchmakingNotifier
 builder.Services.AddHttpClient<MatchmakingNotifier>();
 
-// JWT Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = GetPublicKey()
-        };
-    });
-
+builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -79,38 +63,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHealthChecks("/health");
+
 app.Run();
-
-// ================================
-// RSA KEY MANAGEMENT
-// Public key validation for JWT tokens from AuthService
-// ================================
-
-static RsaSecurityKey GetPublicKey()
-{
-    try
-    {
-        var publicKeyPath = "public.key";
-        if (File.Exists(publicKeyPath))
-        {
-            var publicKeyPem = File.ReadAllText(publicKeyPath);
-            var rsa = RSA.Create();
-            rsa.ImportFromPem(publicKeyPem);
-            return new RsaSecurityKey(rsa);
-        }
-        else
-        {
-            // For demo mode or when no key file exists, create a temporary key
-            // In production, this should always use the proper public key
-            var rsa = RSA.Create(2048);
-            return new RsaSecurityKey(rsa);
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error loading public key: {ex.Message}");
-        // Fallback to temporary key
-        var rsa = RSA.Create(2048);
-        return new RsaSecurityKey(rsa);
-    }
-}
