@@ -116,3 +116,7 @@
 /home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 /home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
 /home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
+/home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/FluentValidation.dll
+/home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/FluentValidation.DependencyInjectionExtensions.dll
+/home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/MediatR.dll
+/home/m/development/DatingApp/swipe-service/bin/Debug/net8.0/MediatR.Contracts.dll

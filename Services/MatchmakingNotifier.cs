@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -19,8 +20,10 @@ namespace SwipeService.Services
             var matchData = new { User1Id = userId, User2Id = targetUserId };
             var content = new StringContent(JsonSerializer.Serialize(matchData), Encoding.UTF8, "application/json");
 
-            // Fixed endpoint path to match MatchmakingController route
-            var response = await _httpClient.PostAsync("http://MatchmakingService:8083/api/matchmaking/matches", content);
+            var baseUrl = Environment.GetEnvironmentVariable("MATCHMAKING_SERVICE_URL") ?? "http://localhost:8083";
+            var requestUri = $"{baseUrl.TrimEnd('/')}/api/matchmaking/matches";
+
+            var response = await _httpClient.PostAsync(requestUri, content);
             if (!response.IsSuccessStatusCode)
             {
                 // Log or handle the error

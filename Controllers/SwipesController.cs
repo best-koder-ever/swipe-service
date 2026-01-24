@@ -1,9 +1,12 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SwipeService.Commands;
+using SwipeService.Common;
 using SwipeService.Data;
 using SwipeService.Models;
+using SwipeService.Queries;
 using SwipeService.Services;
-using System.ComponentModel.DataAnnotations;
 
 namespace SwipeService.Controllers
 {
@@ -14,107 +17,35 @@ namespace SwipeService.Controllers
         private readonly SwipeContext _context;
         private readonly MatchmakingNotifier _notifier;
         private readonly ILogger<SwipesController> _logger;
+        private readonly IMediator _mediator;
 
-        public SwipesController(SwipeContext context, MatchmakingNotifier notifier, ILogger<SwipesController> logger)
+        public SwipesController(SwipeContext context, MatchmakingNotifier notifier, ILogger<SwipesController> logger, IMediator mediator)
         {
             _context = context;
             _notifier = notifier;
             _logger = logger;
+            _mediator = mediator;
         }
 
         // POST: Record a single swipe
         [HttpPost]
         public async Task<IActionResult> Swipe([FromBody] SwipeRequest request)
         {
-            try
+            var command = new RecordSwipeCommand
             {
-                // Validate input
-                if (request.UserId == request.TargetUserId)
-                {
-                    return BadRequest(new SwipeResponse 
-                    { 
-                        Success = false, 
-                        Message = "Cannot swipe on yourself" 
-                    });
-                }
+                UserId = request.UserId,
+                TargetUserId = request.TargetUserId,
+                IsLike = request.IsLike
+            };
 
-                // Check if swipe already exists
-                var existingSwipe = await _context.Swipes
-                    .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.TargetUserId == request.TargetUserId);
+            var result = await _mediator.Send(command);
 
-                if (existingSwipe != null)
-                {
-                    return BadRequest(new SwipeResponse 
-                    { 
-                        Success = false, 
-                        Message = "Already swiped on this user" 
-                    });
-                }
-
-                var swipe = new Swipe
-                {
-                    UserId = request.UserId,
-                    TargetUserId = request.TargetUserId,
-                    IsLike = request.IsLike,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Swipes.Add(swipe);
-                await _context.SaveChangesAsync();
-
-                var response = new SwipeResponse
-                {
-                    Success = true,
-                    Message = "Swipe recorded successfully",
-                    IsMutualMatch = false
-                };
-
-                // Check for mutual match if it's a like
-                if (request.IsLike)
-                {
-                    var mutualSwipe = await _context.Swipes
-                        .FirstOrDefaultAsync(s =>
-                            s.UserId == request.TargetUserId &&
-                            s.TargetUserId == request.UserId &&
-                            s.IsLike);
-
-                    if (mutualSwipe != null)
-                    {
-                        // Create match record
-                        var user1Id = Math.Min(request.UserId, request.TargetUserId);
-                        var user2Id = Math.Max(request.UserId, request.TargetUserId);
-
-                        var match = new Match
-                        {
-                            User1Id = user1Id,
-                            User2Id = user2Id,
-                            CreatedAt = DateTime.UtcNow
-                        };
-
-                        _context.Matches.Add(match);
-                        await _context.SaveChangesAsync();
-
-                        response.IsMutualMatch = true;
-                        response.MatchId = match.Id;
-                        response.Message = "It's a match!";
-
-                        // Notify matchmaking service
-                        await _notifier.NotifyMatchmakingServiceAsync(request.UserId, request.TargetUserId);
-                    }
-                }
-
-                return Ok(response);
-            }
-            catch (Exception ex)
+            if (result.IsFailure)
             {
-                _logger.LogError(ex, "Error processing swipe for user {UserId} on target {TargetUserId}", 
-                    request.UserId, request.TargetUserId);
-                return StatusCode(500, new SwipeResponse 
-                { 
-                    Success = false, 
-                    Message = "Internal server error" 
-                });
+                return BadRequest(ApiResponse<SwipeResponse>.FailureResult(result.Error!));
             }
+
+            return Ok(ApiResponse<SwipeResponse>.SuccessResult(result.Value!));
         }
 
         // POST: Record multiple swipes in batch
@@ -226,74 +157,37 @@ namespace SwipeService.Controllers
             [FromQuery] int pageSize = 50,
             [FromQuery] bool? isLike = null)
         {
-            try
+            var query = new GetSwipesByUserQuery
             {
-                var query = _context.Swipes.Where(s => s.UserId == userId);
-                
-                if (isLike.HasValue)
-                {
-                    query = query.Where(s => s.IsLike == isLike.Value);
-                }
+                UserId = userId,
+                Page = page,
+                PageSize = pageSize,
+                IsLike = isLike
+            };
 
-                var totalCount = await query.CountAsync();
-                
-                var swipes = await query
-                    .OrderByDescending(s => s.CreatedAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(s => new SwipeRecord
-                    {
-                        Id = s.Id,
-                        TargetUserId = s.TargetUserId,
-                        IsLike = s.IsLike,
-                        CreatedAt = s.CreatedAt
-                    })
-                    .ToListAsync();
+            var result = await _mediator.Send(query);
 
-                var response = new UserSwipeHistory
-                {
-                    UserId = userId,
-                    Swipes = swipes,
-                    TotalSwipes = totalCount,
-                    TotalLikes = await _context.Swipes.CountAsync(s => s.UserId == userId && s.IsLike),
-                    TotalPasses = await _context.Swipes.CountAsync(s => s.UserId == userId && !s.IsLike)
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
+            if (result.IsFailure)
             {
-                _logger.LogError(ex, "Error retrieving swipes for user {UserId}", userId);
-                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+                return StatusCode(500, ApiResponse<UserSwipeHistory>.FailureResult(result.Error!));
             }
+
+            return Ok(ApiResponse<UserSwipeHistory>.SuccessResult(result.Value!));
         }
 
         // GET: Get matches for a user
         [HttpGet("matches/{userId}")]
         public async Task<IActionResult> GetMatchesForUser(int userId)
         {
-            try
-            {
-                var matches = await _context.Matches
-                    .Where(m => (m.User1Id == userId || m.User2Id == userId) && m.IsActive)
-                    .Select(m => new MatchResult
-                    {
-                        Id = m.Id,
-                        UserId = userId,
-                        MatchedUserId = m.User1Id == userId ? m.User2Id : m.User1Id,
-                        MatchedAt = m.CreatedAt,
-                        IsActive = m.IsActive
-                    })
-                    .OrderByDescending(m => m.MatchedAt)
-                    .ToListAsync();
+            var query = new GetMatchesForUserQuery { UserId = userId };
+            var result = await _mediator.Send(query);
 
-                return Ok(matches);
-            }
-            catch (Exception ex)
+            if (result.IsFailure)
             {
-                _logger.LogError(ex, "Error retrieving matches for user {UserId}", userId);
-                return StatusCode(500, new { Success = false, Message = "Internal server error" });
+                return StatusCode(500, ApiResponse<List<MatchResult>>.FailureResult(result.Error!));
             }
+
+            return Ok(ApiResponse<List<MatchResult>>.SuccessResult(result.Value!));
         }
 
         // GET: Retrieve users who liked a specific user
@@ -342,32 +236,19 @@ namespace SwipeService.Controllers
         [HttpDelete("match/{userId}/{targetUserId}")]
         public async Task<IActionResult> Unmatch(int userId, int targetUserId)
         {
-            try
+            var command = new UnmatchUsersCommand { UserId = userId, TargetUserId = targetUserId };
+            var result = await _mediator.Send(command);
+
+            if (result.IsFailure)
             {
-                var user1Id = Math.Min(userId, targetUserId);
-                var user2Id = Math.Max(userId, targetUserId);
-
-                var match = await _context.Matches
-                    .FirstOrDefaultAsync(m => m.User1Id == user1Id && m.User2Id == user2Id && m.IsActive);
-
-                if (match == null)
+                if (result.Error!.Contains("not found"))
                 {
-                    return NotFound(new { Success = false, Message = "Match not found" });
+                    return NotFound(ApiResponse<object>.FailureResult(result.Error!));
                 }
-
-                match.IsActive = false;
-                match.UnmatchedAt = DateTime.UtcNow;
-                match.UnmatchedByUserId = userId;
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { Success = true, Message = "Successfully unmatched" });
+                return StatusCode(500, ApiResponse<object>.FailureResult(result.Error!));
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error unmatching users {UserId} and {TargetUserId}", userId, targetUserId);
-                return StatusCode(500, new { Success = false, Message = "Internal server error" });
-            }
+
+            return Ok(ApiResponse<object>.SuccessResult(new { Message = "Successfully unmatched" }));
         }
 
         // GET: Health check

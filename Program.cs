@@ -1,9 +1,19 @@
+using DatingApp.Shared.Middleware;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SwipeService.Data;
 using SwipeService.Extensions;
 using SwipeService.Services;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+});
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -34,9 +44,16 @@ builder.Services.AddScoped<SwipeService.Services.SwipeService>();
 // Register MatchmakingNotifier
 builder.Services.AddHttpClient<MatchmakingNotifier>();
 
+// Add CQRS with MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
+builder.Services.AddCorrelationIds();
 
 var app = builder.Build();
 
@@ -58,6 +75,7 @@ else
 
 app.UseHttpsRedirection();
 
+app.UseCorrelationIds();
 app.UseAuthentication();
 app.UseAuthorization();
 
