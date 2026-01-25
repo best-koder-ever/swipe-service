@@ -41,6 +41,12 @@ builder.Services.AddDbContext<SwipeContext>(options =>
 // Register SwipeService
 builder.Services.AddScoped<SwipeService.Services.SwipeService>();
 
+// Register rate limiting service and configuration
+var swipeLimitsConfig = new SwipeService.Models.SwipeLimitsConfiguration();
+builder.Configuration.GetSection("SwipeLimits").Bind(swipeLimitsConfig);
+builder.Services.AddSingleton(swipeLimitsConfig);
+builder.Services.AddScoped<SwipeService.Services.IRateLimitService, SwipeService.Services.RateLimitService>();
+
 // Register MatchmakingNotifier
 builder.Services.AddHttpClient<MatchmakingNotifier>();
 

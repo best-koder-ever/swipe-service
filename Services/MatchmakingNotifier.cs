@@ -15,7 +15,7 @@ namespace SwipeService.Services
             _httpClient = httpClient;
         }
 
-        public async Task NotifyMatchmakingServiceAsync(int userId, int targetUserId)
+        public virtual async Task NotifyMatchmakingServiceAsync(int userId, int targetUserId)
         {
             var matchData = new { User1Id = userId, User2Id = targetUserId };
             var content = new StringContent(JsonSerializer.Serialize(matchData), Encoding.UTF8, "application/json");

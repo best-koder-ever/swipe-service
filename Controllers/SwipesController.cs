@@ -35,7 +35,8 @@ namespace SwipeService.Controllers
             {
                 UserId = request.UserId,
                 TargetUserId = request.TargetUserId,
-                IsLike = request.IsLike
+                IsLike = request.IsLike,
+                IdempotencyKey = request.IdempotencyKey
             };
 
             var result = await _mediator.Send(command);

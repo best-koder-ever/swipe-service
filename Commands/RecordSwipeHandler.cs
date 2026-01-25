@@ -15,12 +15,18 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
     private readonly SwipeContext _context;
     private readonly MatchmakingNotifier _notifier;
     private readonly ILogger<RecordSwipeHandler> _logger;
+    private readonly IRateLimitService? _rateLimitService;
 
-    public RecordSwipeHandler(SwipeContext context, MatchmakingNotifier notifier, ILogger<RecordSwipeHandler> logger)
+    public RecordSwipeHandler(
+        SwipeContext context, 
+        MatchmakingNotifier notifier, 
+        ILogger<RecordSwipeHandler> logger,
+        IRateLimitService? rateLimitService = null)
     {
         _context = context;
         _notifier = notifier;
         _logger = logger;
+        _rateLimitService = rateLimitService;
     }
 
     public async Task<Result<SwipeResponse>> Handle(RecordSwipeCommand request, CancellationToken cancellationToken)
@@ -33,7 +39,39 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                 return Result<SwipeResponse>.Failure("Cannot swipe on yourself");
             }
 
-            // Business Rule: Check if swipe already exists
+            // Rate Limiting: Check daily swipe limits
+            if (_rateLimitService != null)
+            {
+                var (isAllowed, remaining, limit) = await _rateLimitService.CheckDailyLimitAsync(request.UserId, request.IsLike);
+                if (!isAllowed)
+                {
+                    return Result<SwipeResponse>.Failure(
+                        $"Daily {(request.IsLike ? "like" : "swipe")} limit reached ({limit} per day)");
+                }
+            }
+
+            // Idempotency: Check if swipe with this idempotency key already exists
+            if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            {
+                var existingIdempotentSwipe = await _context.Swipes
+                    .Include(s => s.Match)
+                    .FirstOrDefaultAsync(s => s.IdempotencyKey == request.IdempotencyKey, cancellationToken);
+
+                if (existingIdempotentSwipe != null)
+                {
+                    // Return original result for idempotent retry
+                    var idempotentResponse = new SwipeResponse
+                    {
+                        Success = true,
+                        Message = "Swipe already processed (idempotent)",
+                        IsMutualMatch = existingIdempotentSwipe.Match != null,
+                        MatchId = existingIdempotentSwipe.Match?.Id ?? 0
+                    };
+                    return Result<SwipeResponse>.Success(idempotentResponse);
+                }
+            }
+
+            // Business Rule: Check if swipe already exists (by user + target)
             var existingSwipe = await _context.Swipes
                 .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.TargetUserId == request.TargetUserId, cancellationToken);
 
@@ -48,11 +86,18 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                 UserId = request.UserId,
                 TargetUserId = request.TargetUserId,
                 IsLike = request.IsLike,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = request.IdempotencyKey
             };
 
             _context.Swipes.Add(swipe);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Increment daily rate limit counter
+            if (_rateLimitService != null)
+            {
+                await _rateLimitService.IncrementSwipeCountAsync(request.UserId);
+            }
 
             var response = new SwipeResponse
             {

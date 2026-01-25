@@ -12,6 +12,12 @@ namespace SwipeService.Models
         
         [Required]
         public bool IsLike { get; set; }
+        
+        /// <summary>
+        /// Optional idempotency key for retry safety. If provided, duplicate requests with the same key
+        /// will return the original result instead of creating a duplicate swipe.
+        /// </summary>
+        public string? IdempotencyKey { get; set; }
     }
     
     public class BatchSwipeRequest
@@ -21,6 +27,11 @@ namespace SwipeService.Models
         
         [Required]
         public List<SwipeAction> Swipes { get; set; } = new();
+        
+        /// <summary>
+        /// Optional batch-level idempotency key. If provided, the entire batch will be treated as idempotent.
+        /// </summary>
+        public string? IdempotencyKey { get; set; }
     }
     
     public class SwipeAction

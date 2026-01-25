@@ -9,6 +9,7 @@ namespace SwipeService.Data
 
         public DbSet<Swipe> Swipes { get; set; }
         public DbSet<Match> Matches { get; set; }
+        public DbSet<DailySwipeLimit> DailySwipeLimits { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +28,13 @@ namespace SwipeService.Data
                 .HasIndex(s => new { s.UserId, s.TargetUserId })
                 .IsUnique()
                 .HasDatabaseName("IX_UserId_TargetUserId");
+                
+            // Idempotency key index for fast lookup and uniqueness enforcement
+            modelBuilder.Entity<Swipe>()
+                .HasIndex(s => s.IdempotencyKey)
+                .IsUnique()
+                .HasDatabaseName("IX_IdempotencyKey")
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
 
             // Match entity configuration
             modelBuilder.Entity<Match>()
@@ -45,6 +53,16 @@ namespace SwipeService.Data
             // Ensure proper ordering for matches (smaller userId first)
             modelBuilder.Entity<Match>()
                 .ToTable(table => table.HasCheckConstraint("CK_Match_UserOrder", "User1Id < User2Id"));
+
+            // DailySwipeLimit entity configuration
+            modelBuilder.Entity<DailySwipeLimit>()
+                .HasIndex(d => new { d.UserId, d.Date })
+                .IsUnique()
+                .HasDatabaseName("IX_DailySwipeLimit_UserId_Date");
+
+            modelBuilder.Entity<DailySwipeLimit>()
+                .HasIndex(d => d.Date)
+                .HasDatabaseName("IX_DailySwipeLimit_Date");
         }
     }
 }

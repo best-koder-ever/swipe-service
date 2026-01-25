@@ -13,6 +13,11 @@ namespace SwipeService.Models
         public string? UserLocation { get; set; }
         public string? DeviceInfo { get; set; }
         
+        /// <summary>
+        /// Optional idempotency key for retry safety. Prevents duplicate processing of the same logical swipe.
+        /// </summary>
+        public string? IdempotencyKey { get; set; }
+        
         // Navigation properties
         public Match? Match { get; set; }
     }
