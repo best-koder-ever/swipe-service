@@ -33,6 +33,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="SwipeService.Tests/**/*.cs" />
+    <Content Remove="SwipeService.Tests/**/*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="src\" />
   </ItemGroup>
 
