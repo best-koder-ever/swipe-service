@@ -2,6 +2,7 @@ using DatingApp.Shared.Middleware;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using SwipeService.Data;
 using SwipeService.Extensions;
 using SwipeService.Services;
@@ -20,22 +21,52 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Swipe Service API",
         Version = "v1",
-        Description = "API documentation for the Swipe Service."
+        Description = "Swipe ingestion, idempotency, and rate limiting for matchmaking."
     });
-    // var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    // var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
-    // c.IncludeXmlComments(xmlPath); // Disabled to prevent crash if XML file is missing
+    
+    // JWT Authentication
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using Bearer scheme. Enter 'Bearer' [space] and then your token.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+    
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 // Configure MySQL database
 builder.Services.AddDbContext<SwipeContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 32))
+        new MySqlServerVersion(new Version(8, 0, 32)),
+        mysqlOptions => mysqlOptions.EnableRetryOnFailure()
     ));
 
 // Register SwipeService
@@ -47,8 +78,13 @@ builder.Configuration.GetSection("SwipeLimits").Bind(swipeLimitsConfig);
 builder.Services.AddSingleton(swipeLimitsConfig);
 builder.Services.AddScoped<SwipeService.Services.IRateLimitService, SwipeService.Services.RateLimitService>();
 
+// Internal API Key Authentication for service-to-service calls
+builder.Services.AddScoped<InternalApiKeyAuthFilter>();
+builder.Services.AddTransient<InternalApiKeyAuthHandler>();
+
 // Register MatchmakingNotifier
-builder.Services.AddHttpClient<MatchmakingNotifier>();
+builder.Services.AddHttpClient<MatchmakingNotifier>()
+    .AddHttpMessageHandler<InternalApiKeyAuthHandler>();
 
 // Add CQRS with MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
