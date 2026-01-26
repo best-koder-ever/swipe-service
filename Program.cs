@@ -7,6 +7,9 @@ using SwipeService.Data;
 using SwipeService.Extensions;
 using SwipeService.Services;
 using System.Reflection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,6 +100,46 @@ builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
 builder.Services.AddCorrelationIds();
 
+// Configure OpenTelemetry for metrics and distributed tracing
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: "swipe-service",
+                    serviceVersion: "1.0.0"))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("SwipeService")
+        .AddPrometheusExporter())
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+            options.Filter = (httpContext) =>
+            {
+                // Don't trace health checks and metrics endpoints
+                var path = httpContext.Request.Path.ToString();
+                return !path.Contains("/health") && !path.Contains("/metrics");
+            };
+        })
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation(options =>
+        {
+            options.SetDbStatementForText = true;
+            options.EnrichWithIDbCommand = (activity, command) =>
+            {
+                activity.SetTag("db.query", command.CommandText);
+            };
+        }));
+
+// Create custom meters for business metrics
+System.Diagnostics.Metrics.Meter customMeter = new("SwipeService");
+var swipesProcessedCounter = customMeter.CreateCounter<long>("swipes_processed_total", description: "Total number of swipes processed");
+var likesCounter = customMeter.CreateCounter<long>("likes_total", description: "Total number of likes (right swipes)");
+var passesCounter = customMeter.CreateCounter<long>("passes_total", description: "Total number of passes (left swipes)");
+var mutualMatchesCounter = customMeter.CreateCounter<long>("mutual_matches_total", description: "Total number of mutual matches created");
+var rateLimitedCounter = customMeter.CreateCounter<long>("swipes_rate_limited_total", description: "Total number of rate-limited swipe attempts");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -124,5 +167,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHealthChecks("/health");
+
+// Prometheus metrics endpoint
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();

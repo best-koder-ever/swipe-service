@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -6,11 +7,18 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SwipeService.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDailySwipeLimits : Migration
+    public partial class AddDailySwipeLimitsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "IdempotencyKey",
+                table: "Swipes",
+                type: "varchar(255)",
+                nullable: true)
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.CreateTable(
                 name: "DailySwipeLimits",
                 columns: table => new
@@ -30,6 +38,13 @@ namespace SwipeService.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
+                name: "IX_IdempotencyKey",
+                table: "Swipes",
+                column: "IdempotencyKey",
+                unique: true,
+                filter: "[IdempotencyKey] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DailySwipeLimit_Date",
                 table: "DailySwipeLimits",
                 column: "Date");
@@ -46,6 +61,14 @@ namespace SwipeService.Migrations
         {
             migrationBuilder.DropTable(
                 name: "DailySwipeLimits");
+
+            migrationBuilder.DropIndex(
+                name: "IX_IdempotencyKey",
+                table: "Swipes");
+
+            migrationBuilder.DropColumn(
+                name: "IdempotencyKey",
+                table: "Swipes");
         }
     }
 }

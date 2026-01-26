@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SwipeService.Commands;
@@ -259,7 +258,8 @@ namespace SwipeService.Controllers
         {
             return Ok(new { Status = "Healthy", Service = "SwipeService", Timestamp = DateTime.UtcNow });
         }
-
+    }
+}
         /// <summary>
         /// Delete all swipes for a specific user (used during account deletion)
         /// </summary>
@@ -272,7 +272,7 @@ namespace SwipeService.Controllers
                 _logger.LogInformation("Deleting all swipes for user {UserProfileId}", userProfileId);
 
                 var swipes = await _context.Swipes
-                    .Where(s => s.UserId == userProfileId || s.TargetUserId == userProfileId)
+                    .Where(s => s.SwiperId == userProfileId || s.SwipedUserId == userProfileId)
                     .ToListAsync();
 
                 var count = swipes.Count;
@@ -289,4 +289,3 @@ namespace SwipeService.Controllers
             }
         }
     }
-}
