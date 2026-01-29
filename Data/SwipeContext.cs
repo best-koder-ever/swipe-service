@@ -35,6 +35,15 @@ namespace SwipeService.Data
                 .IsUnique()
                 .HasDatabaseName("IX_IdempotencyKey")
                 .HasFilter("[IdempotencyKey] IS NOT NULL");
+            
+            // T062: Composite indexes for common queries
+            modelBuilder.Entity<Swipe>()
+                .HasIndex(s => new { s.UserId, s.IsLike, s.CreatedAt })
+                .HasDatabaseName("IX_Swipes_User_Like_Created");
+                
+            modelBuilder.Entity<Swipe>()
+                .HasIndex(s => new { s.UserId, s.CreatedAt })
+                .HasDatabaseName("IX_Swipes_User_Created");
 
             // Match entity configuration
             modelBuilder.Entity<Match>()

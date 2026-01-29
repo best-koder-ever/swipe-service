@@ -21,7 +21,9 @@ public class GetSwipesByUserHandler : IRequestHandler<GetSwipesByUserQuery, Resu
     {
         try
         {
-            var query = _context.Swipes.Where(s => s.UserId == request.UserId);
+            var query = _context.Swipes
+                .AsNoTracking()
+                .Where(s => s.UserId == request.UserId);
             
             if (request.IsLike.HasValue)
             {
@@ -48,8 +50,12 @@ public class GetSwipesByUserHandler : IRequestHandler<GetSwipesByUserQuery, Resu
                 UserId = request.UserId,
                 Swipes = swipes,
                 TotalSwipes = totalCount,
-                TotalLikes = await _context.Swipes.CountAsync(s => s.UserId == request.UserId && s.IsLike, cancellationToken),
-                TotalPasses = await _context.Swipes.CountAsync(s => s.UserId == request.UserId && !s.IsLike, cancellationToken)
+                TotalLikes = await _context.Swipes
+                    .AsNoTracking()
+                    .CountAsync(s => s.UserId == request.UserId && s.IsLike, cancellationToken),
+                TotalPasses = await _context.Swipes
+                    .AsNoTracking()
+                    .CountAsync(s => s.UserId == request.UserId && !s.IsLike, cancellationToken)
             };
 
             return Result<UserSwipeHistory>.Success(response);

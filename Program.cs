@@ -6,6 +6,8 @@ using Microsoft.OpenApi.Models;
 using SwipeService.Data;
 using SwipeService.Extensions;
 using SwipeService.Services;
+using SwipeService.Common;
+using SwipeService.Common;
 using System.Reflection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -124,7 +126,6 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
         .AddMeter("SwipeService")
         .AddPrometheusExporter())
     .WithTracing(tracing => tracing

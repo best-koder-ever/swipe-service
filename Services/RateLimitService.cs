@@ -32,6 +32,7 @@ namespace SwipeService.Services
             var limit = isLike ? _config.DailyLikeLimit : _config.DailySwipeLimit;
 
             var dailyLimit = await _context.DailySwipeLimits
+                .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.UserId == userId && d.Date == today);
 
             var currentCount = dailyLimit?.SwipeCount ?? 0;
