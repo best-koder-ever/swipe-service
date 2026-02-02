@@ -10,6 +10,12 @@ namespace SwipeService.Data
         public DbSet<Swipe> Swipes { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<DailySwipeLimit> DailySwipeLimits { get; set; }
+        
+        // Read-only access to Profiles for match validation (from user_service_db)
+        public DbSet<Profile> Profiles { get; set; }
+        
+        // Local mapping of UserId → ProfileId for match validation in demo mode
+        public DbSet<UserProfileMapping> UserProfileMappings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -72,6 +78,24 @@ namespace SwipeService.Data
             modelBuilder.Entity<DailySwipeLimit>()
                 .HasIndex(d => d.Date)
                 .HasDatabaseName("IX_DailySwipeLimit_Date");
+            
+            // Profile entity configuration (read-only, no migrations needed)
+            modelBuilder.Entity<Profile>()
+                .ToTable("Profiles", tb => tb.ExcludeFromMigrations())
+                .HasKey(p => p.Id);
+                
+            modelBuilder.Entity<Profile>()
+                .HasIndex(p => p.UserId)
+                .HasDatabaseName("IX_Profile_UserId");
+            
+            // UserProfileMapping configuration (local cache for demo mode)
+            modelBuilder.Entity<UserProfileMapping>()
+                .HasKey(m => m.ProfileId);
+                
+            modelBuilder.Entity<UserProfileMapping>()
+                .HasIndex(m => m.UserId)
+                .IsUnique()
+                .HasDatabaseName("IX_UserProfileMapping_UserId");
         }
     }
 }
