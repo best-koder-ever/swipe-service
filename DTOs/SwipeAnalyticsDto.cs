@@ -1,48 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using SwipeService.DTOs;
-using SwipeService.Data;
-using Microsoft.EntityFrameworkCore;
+namespace SwipeService.DTOs;
 
-namespace SwipeService.Controllers;
-
-[ApiController]
-[Route("api/swipes/analytics")]
-[Authorize]
-public class SwipeAnalyticsController : ControllerBase
+public record SwipeAnalyticsDto
 {
-    private readonly SwipeDbContext _db;
-
-    public SwipeAnalyticsController(SwipeDbContext db)
-    {
-        _db = db;
-    }
-
-    [HttpGet("{userId}")]
-    public async Task<IActionResult> GetAnalytics(string userId)
-    {
-        var swipes = await _db.Swipes
-            .Where(s => s.SwiperId == userId)
-            .ToListAsync();
-
-        var total = swipes.Count;
-        var likes = swipes.Count(s => s.IsLike);
-        var likeRatio = total > 0 ? (double)likes / total : 0;
-        var peakHour = swipes.Any()
-            ? swipes.GroupBy(s => s.CreatedAt.Hour)
-                    .OrderByDescending(g => g.Count())
-                    .First().Key
-            : 0;
-
-        var dto = new SwipeAnalyticsDto
-        {
-            UserId = userId,
-            TotalSwipes = total,
-            LikeRatio = Math.Round(likeRatio, 2),
-            PeakHour = peakHour,
-            StreakDays = 0
-        };
-
-        return Ok(dto);
-    }
+    public int UserId { get; init; }
+    public int TotalSwipes { get; init; }
+    public double LikeRatio { get; init; }
+    public int PeakHour { get; init; }
+    public int StreakDays { get; init; }
+    public DateTime CalculatedAt { get; init; } = DateTime.UtcNow;
 }
