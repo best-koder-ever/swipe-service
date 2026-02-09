@@ -17,4 +17,4 @@ COPY --from=build-env /app/out .
 
 # Expose the port and run the application
 EXPOSE 80
-ENTRYPOINT ["dotnet", "SwipeService.dll"]ENTRYPOINT ["dotnet", "SwipeService.dll"]
+ENTRYPOINT ["dotnet", "SwipeService.dll"]
