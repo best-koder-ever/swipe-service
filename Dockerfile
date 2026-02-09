@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 WORKDIR /app
 
 # Copy the project file and restore dependencies
-COPY swipe-service.csproj ./
+COPY SwipeService.csproj ./
 RUN dotnet restore
 
 # Copy the entire project and build the application
@@ -17,4 +17,4 @@ COPY --from=build-env /app/out .
 
 # Expose the port and run the application
 EXPOSE 80
-ENTRYPOINT ["dotnet", "SwipeService.dll"]
+ENTRYPOINT ["dotnet", "SwipeService.dll"]ENTRYPOINT ["dotnet", "SwipeService.dll"]
