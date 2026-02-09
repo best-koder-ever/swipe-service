@@ -22,7 +22,7 @@ jobs:
     - name: 🧪 Run tests (if any)
       run: |
         if find . -name "*.Tests.csproj" | grep -q .; then
-          dotnet test --no-build --configuration Release
+          dotnet test swipe-service.sln --no-build --configuration Release
         else
           echo "No test projects found, skipping tests"
         fi
