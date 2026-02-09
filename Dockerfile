@@ -4,11 +4,11 @@ WORKDIR /app
 
 # Copy the project file and restore dependencies
 COPY SwipeService.csproj ./
-RUN dotnet restore
+RUN dotnet restore SwipeService.csproj
 
 # Copy the entire project and build the application
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish SwipeService.csproj -c Release -o out
 
 # Use the official .NET runtime image for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
