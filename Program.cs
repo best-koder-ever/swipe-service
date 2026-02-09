@@ -1,3 +1,5 @@
+using SwipeService.Middleware;
+using SwipeService.Middleware;
 using DatingApp.Shared.Middleware;
 using FluentValidation;
 using MediatR;
@@ -178,6 +180,8 @@ else
 app.UseHttpsRedirection();
 
 app.UseCorrelationIds();
+app.UseGlobalExceptionHandling();
+app.UseGlobalExceptionHandling();
 app.UseAuthentication();
 app.UseAuthorization();
 
