@@ -24,14 +24,14 @@ public class GetSwipesByUserHandler : IRequestHandler<GetSwipesByUserQuery, Resu
             var query = _context.Swipes
                 .AsNoTracking()
                 .Where(s => s.UserId == request.UserId);
-            
+
             if (request.IsLike.HasValue)
             {
                 query = query.Where(s => s.IsLike == request.IsLike.Value);
             }
 
             var totalCount = await query.CountAsync(cancellationToken);
-            
+
             var swipes = await query
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)

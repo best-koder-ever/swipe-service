@@ -18,8 +18,8 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
     private readonly IRateLimitService? _rateLimitService;
 
     public RecordSwipeHandler(
-        SwipeContext context, 
-        MatchmakingNotifier notifier, 
+        SwipeContext context,
+        MatchmakingNotifier notifier,
         ILogger<RecordSwipeHandler> logger,
         IRateLimitService? rateLimitService = null)
     {
@@ -137,7 +137,7 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                     // Notify matchmaking service
                     await _notifier.NotifyMatchmakingServiceAsync(request.UserId, request.TargetUserId);
 
-                    _logger.LogInformation("Match created between users {UserId} and {TargetUserId}", 
+                    _logger.LogInformation("Match created between users {UserId} and {TargetUserId}",
                         request.UserId, request.TargetUserId);
                 }
             }

@@ -10,10 +10,10 @@ public class UserProfileMapping
 {
     [Key]
     public int ProfileId { get; set; }
-    
+
     [Required]
     [MaxLength(36)]
     public string UserId { get; set; } = string.Empty;
-    
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
