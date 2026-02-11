@@ -154,8 +154,8 @@ namespace SwipeService.Controllers
 
         // GET: Retrieve swipes by user with pagination and filtering
         [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetSwipesByUser(int userId, 
-            [FromQuery] int page = 1, 
+        public async Task<IActionResult> GetSwipesByUser(int userId,
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] bool? isLike = null)
         {

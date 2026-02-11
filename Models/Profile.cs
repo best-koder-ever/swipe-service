@@ -12,10 +12,10 @@ public class Profile
 {
     [Key]
     public int Id { get; set; }
-    
+
     [Required]
     [MaxLength(36)]
     public string UserId { get; set; } = string.Empty;
-    
+
     // Other fields not needed for match validation
 }

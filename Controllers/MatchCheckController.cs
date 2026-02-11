@@ -45,7 +45,7 @@ public class MatchCheckController : ControllerBase
 
             // Check if there's an active match between these profiles
             var hasMatch = await _context.Matches
-                .AnyAsync(m => 
+                .AnyAsync(m =>
                     ((m.User1Id == profile1 && m.User2Id == profile2) ||
                      (m.User1Id == profile2 && m.User2Id == profile1)) &&
                     m.IsActive &&

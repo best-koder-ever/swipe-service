@@ -37,13 +37,13 @@ public class GlobalExceptionMiddleware
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         var correlationId = context.TraceIdentifier;
-        
+
         var (statusCode, errorCode, message) = exception switch
         {
             KeyNotFoundException => (HttpStatusCode.NotFound, "NOT_FOUND", exception.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", "Authentication required"),
             ArgumentException => (HttpStatusCode.BadRequest, "BAD_REQUEST", exception.Message),
-            FluentValidation.ValidationException vex => (HttpStatusCode.BadRequest, "VALIDATION_ERROR", 
+            FluentValidation.ValidationException vex => (HttpStatusCode.BadRequest, "VALIDATION_ERROR",
                 string.Join("; ", vex.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"))),
             InvalidOperationException => (HttpStatusCode.Conflict, "CONFLICT", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
