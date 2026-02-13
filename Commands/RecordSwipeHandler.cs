@@ -8,7 +8,7 @@ using SwipeService.Services;
 namespace SwipeService.Commands;
 
 /// <summary>
-/// Handles RecordSwipeCommand
+/// Handles RecordSwipeCommand with integrated behavior analysis (T186 velocity + T189 circuit breaker).
 /// </summary>
 public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<SwipeResponse>>
 {
@@ -16,17 +16,20 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
     private readonly MatchmakingNotifier _notifier;
     private readonly ILogger<RecordSwipeHandler> _logger;
     private readonly IRateLimitService? _rateLimitService;
+    private readonly ISwipeBehaviorAnalyzer? _behaviorAnalyzer;
 
     public RecordSwipeHandler(
         SwipeContext context,
         MatchmakingNotifier notifier,
         ILogger<RecordSwipeHandler> logger,
-        IRateLimitService? rateLimitService = null)
+        IRateLimitService? rateLimitService = null,
+        ISwipeBehaviorAnalyzer? behaviorAnalyzer = null)
     {
         _context = context;
         _notifier = notifier;
         _logger = logger;
         _rateLimitService = rateLimitService;
+        _behaviorAnalyzer = behaviorAnalyzer;
     }
 
     public async Task<Result<SwipeResponse>> Handle(RecordSwipeCommand request, CancellationToken cancellationToken)
@@ -39,6 +42,19 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                 return Result<SwipeResponse>.Failure("Cannot swipe on yourself");
             }
 
+            // T189: Circuit breaker — check if user is in cooldown
+            if (_behaviorAnalyzer != null)
+            {
+                var (inCooldown, cooldownUntil) = await _behaviorAnalyzer.CheckCooldownAsync(request.UserId);
+                if (inCooldown)
+                {
+                    _logger.LogWarning("User {UserId} blocked by circuit breaker until {CooldownUntil}",
+                        request.UserId, cooldownUntil);
+                    return Result<SwipeResponse>.Failure(
+                        $"Too many consecutive likes. Please wait until {cooldownUntil:HH:mm} UTC.");
+                }
+            }
+
             // Rate Limiting: Check daily swipe limits
             if (_rateLimitService != null)
             {
@@ -47,6 +63,17 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                 {
                     return Result<SwipeResponse>.Failure(
                         $"Daily {(request.IsLike ? "like" : "swipe")} limit reached ({limit} per day)");
+                }
+            }
+
+            // T186: Velocity / suspicious pattern check before processing
+            if (_behaviorAnalyzer != null)
+            {
+                var (isSuspicious, reason) = await _behaviorAnalyzer.IsSwipeSuspiciousAsync(request.UserId, request.IsLike);
+                if (isSuspicious)
+                {
+                    _logger.LogWarning("Suspicious swipe from user {UserId}: {Reason}", request.UserId, reason);
+                    // Shadow-log but still allow — the trust score penalty handles the consequence
                 }
             }
 
@@ -97,6 +124,20 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
             if (_rateLimitService != null)
             {
                 await _rateLimitService.IncrementSwipeCountAsync(request.UserId);
+            }
+
+            // T186: Update behavioral stats after recording the swipe
+            if (_behaviorAnalyzer != null)
+            {
+                try
+                {
+                    await _behaviorAnalyzer.UpdateStatsOnSwipeAsync(request.UserId, request.IsLike);
+                }
+                catch (Exception ex)
+                {
+                    // Non-critical: don't fail the swipe if stats update fails
+                    _logger.LogError(ex, "Failed to update behavior stats for user {UserId}", request.UserId);
+                }
             }
 
             var response = new SwipeResponse

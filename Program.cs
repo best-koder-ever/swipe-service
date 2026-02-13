@@ -1,5 +1,4 @@
 using SwipeService.Middleware;
-using SwipeService.Middleware;
 using DatingApp.Shared.Middleware;
 using FluentValidation;
 using MediatR;
@@ -9,7 +8,7 @@ using SwipeService.Data;
 using SwipeService.Extensions;
 using SwipeService.Services;
 using SwipeService.Common;
-using SwipeService.Common;
+using SwipeService.Models;
 using System.Reflection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -101,6 +100,13 @@ builder.Configuration.GetSection("SwipeLimits").Bind(swipeLimitsConfig);
 builder.Services.AddSingleton(swipeLimitsConfig);
 builder.Services.AddScoped<SwipeService.Services.IRateLimitService, SwipeService.Services.RateLimitService>();
 
+// T184-T191: Swipe behavior analysis configuration and services
+builder.Services.Configure<SwipeBehaviorConfiguration>(
+    builder.Configuration.GetSection("SwipeBehavior"));
+builder.Services.AddScoped<ISwipeBehaviorAnalyzer, SwipeBehaviorAnalyzer>();
+builder.Services.AddScoped<IBotDetectionService, BotDetectionHeuristics>();
+builder.Services.AddHostedService<SwipeBehaviorRecalcService>();
+
 // Internal API Key Authentication for service-to-service calls
 builder.Services.AddScoped<InternalApiKeyAuthFilter>();
 builder.Services.AddTransient<InternalApiKeyAuthHandler>();
@@ -180,7 +186,6 @@ else
 app.UseHttpsRedirection();
 
 app.UseCorrelationIds();
-app.UseGlobalExceptionHandling();
 app.UseGlobalExceptionHandling();
 app.UseAuthentication();
 app.UseAuthorization();

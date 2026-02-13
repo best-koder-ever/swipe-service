@@ -10,6 +10,7 @@ namespace SwipeService.Data
         public DbSet<Swipe> Swipes { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<DailySwipeLimit> DailySwipeLimits { get; set; }
+        public DbSet<SwipeBehaviorStats> SwipeBehaviorStats { get; set; }
 
         // Read-only access to Profiles for match validation (from user_service_db)
         public DbSet<Profile> Profiles { get; set; }
@@ -88,7 +89,21 @@ namespace SwipeService.Data
                 .HasIndex(p => p.UserId)
                 .HasDatabaseName("IX_Profile_UserId");
 
-            // UserProfileMapping configuration (local cache for demo mode)
+            // SwipeBehaviorStats entity configuration (T184)
+            modelBuilder.Entity<SwipeBehaviorStats>()
+                .HasIndex(s => s.UserId)
+                .IsUnique()
+                .HasDatabaseName("IX_SwipeBehaviorStats_UserId");
+
+            modelBuilder.Entity<SwipeBehaviorStats>()
+                .HasIndex(s => s.SwipeTrustScore)
+                .HasDatabaseName("IX_SwipeBehaviorStats_TrustScore");
+
+            modelBuilder.Entity<SwipeBehaviorStats>()
+                .Property(s => s.SwipeTrustScore)
+                .HasDefaultValue(100m);
+
+                        // UserProfileMapping configuration (local cache for demo mode)
             modelBuilder.Entity<UserProfileMapping>()
                 .HasKey(m => m.ProfileId);
 
