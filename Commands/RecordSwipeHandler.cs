@@ -1,3 +1,4 @@
+using SwipeService.Metrics;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SwipeService.Common;
@@ -17,19 +18,22 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
     private readonly ILogger<RecordSwipeHandler> _logger;
     private readonly IRateLimitService? _rateLimitService;
     private readonly ISwipeBehaviorAnalyzer? _behaviorAnalyzer;
+    private readonly SwipeServiceMetrics? _metrics;
 
     public RecordSwipeHandler(
         SwipeContext context,
         MatchmakingNotifier notifier,
         ILogger<RecordSwipeHandler> logger,
         IRateLimitService? rateLimitService = null,
-        ISwipeBehaviorAnalyzer? behaviorAnalyzer = null)
+        ISwipeBehaviorAnalyzer? behaviorAnalyzer = null,
+        SwipeServiceMetrics? metrics = null)
     {
         _context = context;
         _notifier = notifier;
         _logger = logger;
         _rateLimitService = rateLimitService;
         _behaviorAnalyzer = behaviorAnalyzer;
+        _metrics = metrics;
     }
 
     public async Task<Result<SwipeResponse>> Handle(RecordSwipeCommand request, CancellationToken cancellationToken)
@@ -61,6 +65,7 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                 var (isAllowed, remaining, limit) = await _rateLimitService.CheckDailyLimitAsync(request.UserId, request.IsLike);
                 if (!isAllowed)
                 {
+                    _metrics?.RateLimited();
                     return Result<SwipeResponse>.Failure(
                         $"Daily {(request.IsLike ? "like" : "swipe")} limit reached ({limit} per day)");
                 }
@@ -119,6 +124,8 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
 
             _context.Swipes.Add(swipe);
             await _context.SaveChangesAsync(cancellationToken);
+            _metrics?.SwipeProcessed();
+            if (request.IsLike) _metrics?.Like(); else _metrics?.Pass();
 
             // Increment daily rate limit counter
             if (_rateLimitService != null)
@@ -174,6 +181,7 @@ public class RecordSwipeHandler : IRequestHandler<RecordSwipeCommand, Result<Swi
                     response.IsMutualMatch = true;
                     response.MatchId = match.Id;
                     response.Message = "It's a match!";
+                    _metrics?.MutualMatch();
 
                     // Notify matchmaking service
                     await _notifier.NotifyMatchmakingServiceAsync(request.UserId, request.TargetUserId);

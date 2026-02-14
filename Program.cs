@@ -158,12 +158,9 @@ builder.Services.AddOpenTelemetry()
         }));
 
 // Create custom meters for business metrics
-System.Diagnostics.Metrics.Meter customMeter = new("SwipeService");
-var swipesProcessedCounter = customMeter.CreateCounter<long>("swipes_processed_total", description: "Total number of swipes processed");
-var likesCounter = customMeter.CreateCounter<long>("likes_total", description: "Total number of likes (right swipes)");
-var passesCounter = customMeter.CreateCounter<long>("passes_total", description: "Total number of passes (left swipes)");
-var mutualMatchesCounter = customMeter.CreateCounter<long>("mutual_matches_total", description: "Total number of mutual matches created");
-var rateLimitedCounter = customMeter.CreateCounter<long>("swipes_rate_limited_total", description: "Total number of rate-limited swipe attempts");
+
+// Register injectable business metrics
+builder.Services.AddSingleton<SwipeService.Metrics.SwipeServiceMetrics>();
 
 var app = builder.Build();
 
