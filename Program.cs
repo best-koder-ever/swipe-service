@@ -164,6 +164,17 @@ builder.Services.AddSingleton<SwipeService.Metrics.SwipeServiceMetrics>();
 
 var app = builder.Build();
 
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<SwipeContext>();
+    if (dbContext.Database.IsRelational())
+    {
+        dbContext.Database.Migrate();
+        Console.WriteLine("SwipeService: Applied database migrations");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
