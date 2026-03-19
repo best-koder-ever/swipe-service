@@ -288,5 +288,23 @@ namespace SwipeService.Controllers
                 return StatusCode(500, "An error occurred while deleting user swipes");
             }
         }
+
+        // GET: Get user profile mappings (ProfileId <-> Keycloak UUID)
+        [HttpGet("user-mappings")]
+        public async Task<IActionResult> GetUserMappings()
+        {
+            try
+            {
+                var mappings = await _context.UserProfileMappings
+                    .Select(m => new { m.ProfileId, KeycloakUserId = m.UserId.ToString() })
+                    .ToListAsync();
+                return Ok(ApiResponse<object>.SuccessResult(mappings));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching user mappings");
+                return StatusCode(500, "An error occurred while fetching user mappings");
+            }
+        }
     }
 }
