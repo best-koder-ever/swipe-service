@@ -162,6 +162,17 @@ builder.Services.AddOpenTelemetry()
 // Register injectable business metrics
 builder.Services.AddSingleton<SwipeService.Metrics.SwipeServiceMetrics>();
 
+// Add CORS for Flutter web development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 // Apply migrations on startup
@@ -195,6 +206,7 @@ app.UseHttpsRedirection();
 
 app.UseCorrelationIds();
 app.UseGlobalExceptionHandling();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
