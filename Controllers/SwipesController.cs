@@ -260,35 +260,6 @@ namespace SwipeService.Controllers
             return Ok(new { Status = "Healthy", Service = "SwipeService", Timestamp = DateTime.UtcNow });
         }
 
-        /// <summary>
-        /// Delete all swipes for a specific user (used during account deletion)
-        /// </summary>
-        [HttpDelete("user/{userProfileId:int}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> DeleteUserSwipes(int userProfileId)
-        {
-            try
-            {
-                _logger.LogInformation("Deleting all swipes for user {UserProfileId}", userProfileId);
-
-                var swipes = await _context.Swipes
-                    .Where(s => s.UserId == userProfileId || s.TargetUserId == userProfileId)
-                    .ToListAsync();
-
-                var count = swipes.Count;
-                _context.Swipes.RemoveRange(swipes);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Deleted {Count} swipes for user {UserProfileId}", count, userProfileId);
-                return Ok(count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting swipes for user {UserProfileId}", userProfileId);
-                return StatusCode(500, "An error occurred while deleting user swipes");
-            }
-        }
-
         // GET: Get user profile mappings (ProfileId <-> Keycloak UUID)
         [HttpGet("user-mappings")]
         public async Task<IActionResult> GetUserMappings()

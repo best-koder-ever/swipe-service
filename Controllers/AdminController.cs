@@ -39,11 +39,14 @@ public class AdminController : ControllerBase
             return StatusCode(StatusCodes.Status403Forbidden, new { message = "Admin reset disabled in this environment." });
         }
 
-        var swipeCount = await _context.Swipes.CountAsync();
-        var matchCount = await _context.Matches.CountAsync();
+        var swipes = await _context.Swipes.ToListAsync();
+        var matches = await _context.Matches.ToListAsync();
+        var swipeCount = swipes.Count;
+        var matchCount = matches.Count;
 
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM Matches");
-        await _context.Database.ExecuteSqlRawAsync("DELETE FROM Swipes");
+        _context.Matches.RemoveRange(matches);
+        _context.Swipes.RemoveRange(swipes);
+        await _context.SaveChangesAsync();
 
         _logger.LogWarning(
             "[FINDING] High AdminReset: cleared {SwipeCount} swipes and {MatchCount} matches by {User}",
